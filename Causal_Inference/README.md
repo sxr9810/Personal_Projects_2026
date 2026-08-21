@@ -8,16 +8,16 @@
 
 ## 1. The Business Problem
 
-NorthStar Social's Feed team built **Ranking v2**, a new model that re-orders the feed to surface content more likely to trigger *comments, replies, shares, and DMs* ‚Äî collectively, **Meaningful Social Interactions (MSI)**. Leadership has made MSI a top-line KPI because passive scrolling (video autoplay, infinite scroll) has grown while genuine person-to-person interaction has flattened ‚Äî a well-known industry concern (this is the same tension Meta described publicly around its 2018 News Feed changes).
+NorthStar Social's Feed team built **Ranking v2**, a new model that re-orders the feed to surface content more likely to trigger *comments, replies, shares, and DMs -  collectively, **Meaningful Social Interactions (MSI)**. Leadership has made MSI a top-line KPI because passive scrolling (video autoplay, infinite scroll) has grown while genuine person-to-person interaction has flattened - a well-known industry concern (this is the same tension Meta described publicly around its 2018 News Feed changes).
 
 Before shipping to 100% of users, the team needs to answer four questions that determine the launch decision:
 
 1. **Does Ranking v2 actually increase MSI**, and is the effect real once we account for how the experiment was randomized (not just "is the p-value small")?
 2. **Is the launch-week lift durable**, or is it a **novelty effect** that will decay once the initial launch buzz wears off?
 3. **Who benefits, and who might be hurt?** A single average effect can hide the fact that some segments are being made worse off.
-4. **Does the gain in MSI come at the cost of guardrail metrics** ‚Äî time spent (ad inventory) and retention?
+4. **Does the gain in MSI come at the cost of guardrail metrics** - time spent (ad inventory) and retention?
 
-There's a fifth, more subtle problem the team has been burned by before: **this is a social product, so users influence each other.** If the experiment is randomized user-by-user, a control user whose friends are in the treatment group can still be indirectly affected (they see more comments/shares from treated friends in their own feed) ‚Äî a textbook **SUTVA violation / network interference** problem that biases a naive A/B test toward zero. The design section below shows how the team addressed this.
+There's a fifth, more subtle problem the team has been burned by before: **this is a social product, so users influence each other.** If the experiment is randomized user-by-user, a control user whose friends are in the treatment group can still be indirectly affected (they see more comments/shares from treated friends in their own feed) - a textbook **SUTVA violation / network interference** problem that biases a naive A/B test toward zero. The design section below shows how the team addressed this.
 
 ---
 
@@ -40,14 +40,14 @@ There's a fifth, more subtle problem the team has been burned by before: **this 
 | # | Step | Method | Why it's needed here (not just "because textbooks say so") |
 |---|------|--------|----|
 | 1 | Sanity checks | Chi-square SRM test on cluster assignment; t-tests on pre-period covariates | Confirms the randomization worked before we trust any effect estimate |
-| 2 | Naive effect estimate | OLS, plain (heteroskedasticity-robust) SEs | Shown deliberately as the **wrong** approach ‚Äî the baseline every reviewer will otherwise be tempted to trust |
+| 2 | Naive effect estimate | OLS, plain (heteroskedasticity-robust) SEs | Shown deliberately as the **wrong** approach - the baseline every reviewer will otherwise be tempted to trust |
 | 3 | Correct inference | OLS with **cluster-robust standard errors**, clustered on the actual randomization unit | Since treatment was assigned by cluster, standard errors must account for intra-cluster correlation or they will be too small |
 | 4 | Variance reduction | **CUPED** (pre-period MSI as covariate) | Turns a noisy, expensive experiment into a much more sensitive one without collecting a single extra user |
 | 5 | Novelty effect | Day-by-day diff-in-diff treatment effect (post-period only) | Distinguishes a durable improvement from launch-week hype ‚Äî critical for a correct ramp decision |
 | 6 | Heterogeneous effects | Subgroup ATEs by segment + interaction regression + a **T-learner** (two random forests, treated vs. control) for individual-level CATE | The average effect can hide harm to specific user segments; this is how you find that before, not after, a full launch |
 | 7 | Guardrail: time spent | Same cluster-robust regression, **CUPED-adjusted** | The raw pre-period check flagged a chance imbalance between arms (expected with only 200 randomization units) ‚Äî CUPED corrects for it, the same way it does for the primary metric |
 | 8 | Guardrail: retention | Cluster-robust regression on next-day return rate, by segment | Retention risk in the highest-churn segment is a launch blocker even if it's not "significant" in aggregate |
-| 9 | Interference bias demo | A **second, smaller synthetic dataset** with individual-level (not cluster-level) randomization and an explicit spillover mechanism, analyzed naively | Quantifies *how wrong* the answer would have been if the team had skipped cluster randomization ‚Äî this is the argument for why the design in section 2 was worth the extra engineering effort |
+| 9 | Interference bias demo | A **second, smaller synthetic dataset** with individual-level (not cluster-level) randomization and an explicit spillover mechanism, analyzed naively | Quantifies *how wrong* the answer would have been if the team had skipped cluster randomization - this is the argument for why the design in section 2 was worth the extra engineering effort |
 | 10 | Business translation | Effect sizes √ó assumed DAU | Turns statistics into a number a VP can act on |
 
 ---
@@ -68,16 +68,16 @@ There's a fifth, more subtle problem the team has been burned by before: **this 
 ### 4.3 The headline lift is inflated by novelty
 - Day 1 of launch: **+2.47 MSI/user/day**
 - Day 14 of launch: **+1.08 MSI/user/day**
-- The effect decayed **56%** over two weeks. Extrapolating the trailing 5 days puts the **true steady-state lift at ‚âà +1.15 MSI/user/day** ‚Äî this, not the day-1 number, is what should be used to size the business impact and set success criteria for the next experiment.
+- The effect decayed **56%** over two weeks. Extrapolating the trailing 5 days puts the **true steady-state lift at ~ +1.15 MSI/user/day** ‚Äî this, not the day-1 number, is what should be used to size the business impact and set success criteria for the next experiment.
 
 ### 4.4 The average effect hides a real trade-off across segments
 | Segment | ATE on daily MSI | Interpretation |
 |---|---|---|
 | Power users | **+5.23** (SE 0.35) | Large, robust gain |
 | Casual users | **+1.52** (SE 0.26) | Solid, positive gain |
-| Dormant users | **‚àí0.03** (SE 0.19, not significant) | **No benefit at all** ‚Äî and their retention moved the wrong way (see 4.5) |
+| Dormant users | **-0.03** (SE 0.19, not significant) | **No benefit at all** ‚Äî and their retention moved the wrong way (see 4.5) |
 
-The T-learner CATE estimates (power ‚âà 3.8, casual ‚âà 1.3, dormant ‚âà 0.5) agree directionally with the simple subgroup ATEs ‚Äî this cross-check between two independent methods is what gives confidence the segment story is real, not a modeling artifact.
+The T-learner CATE estimates (power ~ 3.8, casual ~ 1.3, dormant ~ 0.5) agree directionally with the simple subgroup ATEs - this cross-check between two independent methods is what gives confidence the segment story is real, not a modeling artifact.
 
 ### 4.5 Guardrails: a real cost, and a methodology trap
 - **Time spent**: the *raw* pre/post comparison showed a small, non-significant **increase** (+0.19 min/day, p=0.81) ‚Äî but the pre-period balance check had already flagged that the two arms started from different baselines purely by chance (expected noise with only 200 randomization clusters). After **CUPED-adjusting** for that pre-existing difference, the true effect is a statistically significant **decrease of 0.82 min/user/day** (p < 0.001). Without the pre-period check + CUPED correction, this guardrail miss would have been invisible.
@@ -95,17 +95,17 @@ Using the companion individually-randomized demo dataset (same true effects, but
 
 Assuming a DAU base of **450,000,000** (illustrative, for a large social product surface):
 
-- **+1.15 MSI/user/day** at steady state ‚Üí **‚âà 516 million incremental meaningful interactions per day** platform-wide
-- **‚àí0.82 min/user/day** time spent ‚Üí **‚âà 367 million fewer minutes/day**, a real ad-inventory cost to weigh against the MSI gain
-- **Dormant-segment retention**: ‚àí1.06pp on a base of ~133M dormant users ‚Üí **‚âà 1.4 million fewer next-day returns per day** in the highest-churn segment if shipped broadly, unchanged
+- **+1.15 MSI/user/day** at steady state ‚Üí **~ 516 million incremental meaningful interactions per day** platform-wide
+- **‚àí0.82 min/user/day** time spent ‚Üí **~367 million fewer minutes/day**, a real ad-inventory cost to weigh against the MSI gain
+- **Dormant-segment retention**: -1.06pp on a base of ~133M dormant users ‚Üí **~1.4 million fewer next-day returns per day** in the highest-churn segment if shipped broadly, unchanged
 
 ## 6. Recommendation
 
 1. **Ship to power and casual segments.** The effect is large, statistically robust to correct (cluster-robust, CUPED-adjusted) inference, and durable after novelty decay.
 2. **Hold back the dormant segment.** They see zero MSI benefit and a real retention cost ‚Äî launching to them as-is trades away your most fragile users for no upside. Run a follow-up experiment with a gentler ranking change tuned for low-activity users.
-3. **Size the launch decision using the steady-state effect (‚âà+1.15), not the day-1 number (‚âà+2.47).** Set the pre-registered success threshold for the next experiment iteration accordingly, so the team isn't chasing a novelty artifact.
-4. **Escalate the time-spent trade-off to leadership explicitly** ‚Äî it's small per-user but material at platform scale, and the raw (non-CUPED) analysis would have missed it entirely.
-5. **Keep cluster (graph) randomization as the default design for any feature with plausible peer effects** ‚Äî the interference-bias demo shows a plausible 30% understatement of impact from getting this wrong, which would have led to under-investing in a genuinely valuable feature.
+3. **Size the launch decision using the steady-state effect (~+1.15), not the day-1 number (~+2.47).** Set the pre-registered success threshold for the next experiment iteration accordingly, so the team isn't chasing a novelty artifact.
+4. **Escalate the time-spent trade-off to leadership explicitly** - it's small per-user but material at platform scale, and the raw (non-CUPED) analysis would have missed it entirely.
+5. **Keep cluster (graph) randomization as the default design for any feature with plausible peer effects** - the interference-bias demo shows a plausible 30% understatement of impact from getting this wrong, which would have led to under-investing in a genuinely valuable feature.
 
 ---
 
@@ -162,7 +162,7 @@ python analysis.py        # writes RESULTS_LOG.txt, results_summary.json, figure
 
 ## 8. Limitations & Honest Caveats
 
-- This is simulated data with known ground truth, chosen so the pipeline's estimates can be validated against `ground_truth_params.json`. On real data, you would never get this clean a confirmation ‚Äî treat this repo as a **methodology demonstration**, not a claim that real feed-ranking experiments are this tidy.
+- This is simulated data with known ground truth, chosen so the pipeline's estimates can be validated against `ground_truth_params.json`. On real data, you would never get this clean a confirmation - treat this repo as a **methodology demonstration**, not a claim that real feed-ranking experiments are this tidy.
 - 200 clusters is a modest number of randomization units for cluster-robust inference; in practice, teams often also run a cluster-level permutation test or wild cluster bootstrap alongside the asymptotic cluster-robust SE when the number of clusters is this small, since the asymptotics are approximate.
 - The T-learner CATE estimates are a quick, interpretable heterogeneity check, not a substitute for a purpose-built causal-forest / doubly-robust estimator (e.g., `econml`, `causalml`) in a production setting.
 - The business-impact numbers use a single illustrative DAU figure and a linear extrapolation from the experiment sample to the full user base; a real launch memo would also model ramp schedule, seasonality, and confidence intervals around the DAU-scaled projection, not just the point estimate.
