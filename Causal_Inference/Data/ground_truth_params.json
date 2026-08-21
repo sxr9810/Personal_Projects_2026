@@ -1,0 +1,1 @@
+{"steady_state_lift_msi":{"power":3.2,"casual":0.9,"dormant":-0.1},"novelty_bump_multiplier":2.6,"novelty_decay_tau_days":4.5,"time_spent_effect":{"power":-2.6,"casual":-0.8,"dormant":-0.1},"spillover_strength_demo_dataset":0.55}
