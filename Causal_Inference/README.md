@@ -113,19 +113,19 @@ Assuming a DAU base of **450,000,000** (illustrative, for a large social product
 
 ```
 submission/
-‚îú‚îÄ‚îÄ README.md                              <- this file
-‚îú‚îÄ‚îÄ generate_data.py                       <- simulates both datasets (run first)
-‚îú‚îÄ‚îÄ analysis.py                            <- full analysis pipeline (run second)
-‚îú‚îÄ‚îÄ RESULTS_LOG.txt                        <- full console output of the last analysis run
-‚îú‚îÄ‚îÄ results_summary.json                   <- machine-readable summary of all key numbers
-‚îú‚îÄ‚îÄ data/
-‚îÇ   ‚îú‚îÄ‚îÄ cluster_experiment.csv             <- primary dataset: 252,000 rows (12,000 users x 21 days)
-‚îÇ   ‚îú‚îÄ‚îÄ individual_randomization_demo.csv  <- companion dataset for the interference-bias demo
-‚îÇ   ‚îî‚îÄ‚îÄ ground_truth_params.json           <- the true simulated effects, for validating the pipeline
-‚îî‚îÄ‚îÄ figures/
-    ‚îú‚îÄ‚îÄ novelty_decay.png                  <- daily treatment effect, day 0-13 post-launch
-    ‚îú‚îÄ‚îÄ heterogeneous_effects.png          <- ATE by user segment
-    ‚îî‚îÄ‚îÄ interference_bias.png              <- spillover contamination visualization
+README.md                              <- this file
+generate_data.py                       <- simulates both datasets (run first)
+analysis.py                            <- full analysis pipeline (run second)
+RESULTS_LOG.txt                        <- full console output of the last analysis run
+results_summary.json                   <- machine-readable summary of all key numbers
+data/
+cluster_experiment.csv             <- primary dataset: 252,000 rows (12,000 users x 21 days)
+individual_randomization_demo.csv  <- companion dataset for the interference-bias demo
+ground_truth_params.json           <- the true simulated effects, for validating the pipeline
+figures/
+novelty_decay.png                  <- daily treatment effect, day 0-13 post-launch
+heterogeneous_effects.png          <- ATE by user segment
+interference_bias.png              <- spillover contamination visualization
 ```
 
 ### How to reproduce
