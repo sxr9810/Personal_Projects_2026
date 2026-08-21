@@ -1,0 +1,27 @@
+{
+  "naive_ols_ate": 1.51941063797314,
+  "naive_ols_se": 0.1012916117385335,
+  "cluster_robust_ate": 1.51941063797314,
+  "cluster_robust_se": 0.2477518339832545,
+  "se_inflation_factor": 2.445926466475648,
+  "cuped_ate": 1.421309131200656,
+  "cuped_se": 0.03122013582184008,
+  "cuped_variance_reduction_pct": 98.41205366905932,
+  "novelty_day1_effect": 2.472600961538464,
+  "novelty_day14_effect": 1.0822040598290612,
+  "steady_state_msi_lift": 1.1459924145299176,
+  "time_spent_effect_min_raw": 0.1926805364774194,
+  "time_spent_effect_min_cuped": -0.8154262293491703,
+  "time_spent_pvalue": 4.48973839533416e-42,
+  "segment_ate": {
+    "power": 5.231715447348971,
+    "casual": 1.5175602010466933,
+    "dormant": -0.03400626380542007
+  },
+  "naive_individual_rct_estimate": 0.6606986811763362,
+  "true_direct_effect": 0.9432166666666668,
+  "interference_bias": -0.2825179854903306,
+  "dau_assumed": 450000000,
+  "projected_incremental_msi_per_day": 515696586.53846294,
+  "projected_time_spent_min_per_day": -366941803.2071266
+}

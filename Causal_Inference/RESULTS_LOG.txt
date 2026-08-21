@@ -1,0 +1,84 @@
+==============================================================================
+NORTHSTAR SOCIAL — FEED RANKING v2 EXPERIMENT ANALYSIS
+==============================================================================
+Loaded 252,000 user-day rows | 12,000 users | 200 clusters
+
+--- 1. SANITY CHECKS -------------------------------------------------
+Cluster split: 96 treated / 104 control clusters (SRM chi2 p=0.572 -> OK, no SRM)
+User split: 5,760 treated / 6,240 control users
+Pre-period balance check [pre_msi]: treat mean=5.759, control mean=5.671, p=0.324 (balanced)
+Pre-period balance check [pre_time]: treat mean=21.885, control mean=20.832, p=0.000 (IMBALANCE)
+Pre-period balance check [tenure_days]: treat mean=573.794, control mean=566.796, p=0.322 (balanced)
+
+--- 2. NAIVE (WRONG) ANALYSIS: user-level OLS, no cluster correction --
+MSI lift (naive SE)      = 1.519  SE=0.101  95% CI=[1.321, 1.718]  p=2.09e-50
+  -> Looks extremely significant, but each of the ~200 clusters contributes 60 correlated 'observations', so this p-value is artificially inflated in confidence (pseudo-replication).
+
+--- 3. CORRECT ANALYSIS: cluster-robust standard errors ---------------
+MSI lift (cluster-robust SE) = 1.519  SE=0.248  95% CI=[1.034, 2.005]  p=8.63e-10
+  -> Cluster-robust SE is 2.4x larger than the naive SE. The effect is still significant, but the *honest* uncertainty is 2.4x wider — this is the number that should go in the launch decision doc.
+
+--- 4. VARIANCE REDUCTION: CUPED using pre-period MSI -----------------
+CUPED theta (regression coefficient of post on pre) = 1.116
+MSI lift (CUPED, cluster-robust SE) = 1.421  SE=0.031  95% CI=[1.360, 1.482]  p=0.00e+00
+Variance reduction from CUPED: 98.4%  (equivalent to running the experiment on ~62.97x as many users for the same precision)
+
+--- 5. NOVELTY EFFECT: daily treatment effect during POST period ------
+Treatment effect on POST-day 1:  +2.47 MSI/day
+Treatment effect on POST-day 14: +1.08 MSI/day
+Decay: effect fell 56% from day 1 to day 14 -> classic novelty-effect signature. Extrapolating the last 5 days' trend suggests the STEADY-STATE lift is closer to ~1.15 MSI/day than the headline day-1 number.
+Saved figures/novelty_decay.png
+
+--- 6. HETEROGENEOUS TREATMENT EFFECTS ---------------------------------
+Interaction regression: post_msi ~ treatment * segment (base = casual)
+  treatment                           coef=+1.518  p=0.000
+  treatment:C(segment)[T.dormant]     coef=-1.552  p=0.000
+  treatment:C(segment)[T.power]       coef=+3.714  p=0.000
+
+Simple subgroup ATEs (cluster-robust):
+  power    (n=1,799): ATE = +5.232 (SE=0.352)
+  casual   (n=6,654): ATE = +1.518 (SE=0.260)
+  dormant  (n=3,547): ATE = -0.034 (SE=0.186)
+
+T-learner (random forest) individual treatment effect estimates:
+segment
+power      3.809
+casual     1.272
+dormant    0.511
+Saved figures/heterogeneous_effects.png
+
+--- 7. GUARDRAIL METRIC: time spent -------------------------------------
+Time-spent effect, RAW (confounded by pre-period imbalance) = +0.193 min/day  p=8.08e-01
+Time-spent effect, CUPED-adjusted (theta=0.957) = -0.815 min/day  SE=0.060  95% CI=[-0.933, -0.698]  p=4.49e-42
+  -> Statistically significant DECREASE in time spent after adjusting for the pre-existing cluster imbalance. This illustrates why pre-period covariate adjustment matters for EVERY metric in a cluster-randomized design, not just the primary metric -- the raw guardrail number here was misleading. Directionally, a shift from passive scrolling toward active interactions (the classic MSI-vs-time-spent trade-off Meta publicly described around its 2018 News Feed changes) is still the mechanism to monitor at full ramp.
+
+--- 8. GUARDRAIL METRIC: next-day return rate (proxy for retention) ----
+Return-rate effect = -0.0045  SE=0.0046  95% CI=[-0.0135, 0.0044]  p=0.321
+Return-rate by segment (treatment - control):
+treatment       0       1    diff
+segment                          
+casual     0.7437  0.7466  0.0028
+dormant    0.3380  0.3274 -0.0106
+power      0.9286  0.9382  0.0096
+  -> Dormant-segment retention effect is the one to watch: even a small negative move here matters because dormant users are the highest churn risk group already.
+
+--- 9. WHY CLUSTER RANDOMIZATION MATTERS: contamination bias demo -----
+If we had randomized at the INDIVIDUAL level instead (demo dataset):
+  Naive individual-RCT estimate of ATE = 0.661 (SE=0.138)
+  TRUE average direct effect (ground truth, no interference) = 0.943
+  Bias from spillover contamination = -0.283 (-30% relative bias)
+  -> Control users in the individually-randomized world were partly 'treated' via friends in their cluster, pulling the control mean up and shrinking the measured gap. This is exactly the SUTVA violation that cluster (graph) randomization was designed to prevent, and it's why the primary analysis in this study used cluster randomization from the start.
+  Sanity: correlation between a cluster's treated-share and its OWN control users' outcome = 0.05 (should be ~0 if no spillover; a clearly positive number confirms contamination).
+Saved figures/interference_bias.png
+
+--- 10. BUSINESS IMPACT ------------------------------------------------
+Assuming a DAU base of 450,000,000:
+  Projected incremental MSI / day at steady state: 515,696,587 interactions/day (+1.15 per user/day)
+  Projected time-spent impact / day: -366,941,803 minutes/day (-0.82 min per user/day)
+  Dormant-segment retention delta: -0.0106 absolute return-rate — on a dormant base of ~132,525,000 users this is ~-1,406,521 fewer/more next-day returns per day.
+
+RECOMMENDATION LOGIC:
+ - Primary success metric (MSI) shows a real, statistically robust lift even after correcting for clustering and the CI does not cross zero at steady state.
+ - The launch decision should be based on the DECAYED / steady-state effect (~day 10-14), not the inflated day-1 novelty number.
+ - Effect is concentrated in power & casual users; dormant users show flat-to-negative retention. -> Recommend a SEGMENTED ramp: ship to power + casual segments fully, hold dormant segment back and A/B a modified (gentler) ranking change specifically for them.
+ - Time-spent guardrail, once corrected for pre-period cluster imbalance via CUPED, showed a DECREASE (-0.82 min/user/day, statistically significant); leadership should weigh this against MSI gains (a stated top-line KPI) and the ads-inventory implications before full ramp.
